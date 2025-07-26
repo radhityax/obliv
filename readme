@@ -1,0 +1,17 @@
+obliv
+------
+
+(work in progress)
+
+i have a plan to build my own open source linux control panel in golang.
+dont expect too much on me since i'm not programmer.
+
+build
+-----
+
+$ make build
+
+run
+-----
+
+$ make run

@@ -10,17 +10,22 @@ import (
 	"strconv"
 )
 
+var Port string = ":2305"
+
 type Memory struct {
 	MemTotal int
 	MemFree int
 	MemAvailable int
+	Buffers int
+	Cached int
+	BuffCache int
 }
-
+type CPU struct {
+	Usage float32
+}
 func GetMemory() Memory {
 	dat, err := os.Open("/proc/meminfo")
-	if err != nil {
-		panic(err)
-	}
+	check(err)
 	defer dat.Close()
 	
 	scan := bufio.NewScanner(dat)
@@ -31,9 +36,13 @@ func GetMemory() Memory {
 			case "MemTotal":
 				res.MemTotal = value / 1024
 			case "MemFree":
-				res.MemFree = value
+				res.MemFree = value / 1024
 			case "MemAvailable":
-				res.MemAvailable = value
+				res.MemAvailable = value / 1024
+			case "Buffers":
+				res.Buffers = value / 1204
+			case "Cached":
+				res.Cached = value / 1204
 			}
 		}
 		return res
@@ -41,7 +50,6 @@ func GetMemory() Memory {
 func parseLine(raw string) (key string, value int) {
     text := strings.ReplaceAll(raw[:len(raw)-2], " ", "")
     keyValue := strings.Split(text, ":")
-    fmt.Println(keyValue[1])
 	return keyValue[0], toInt(keyValue[1])
 }
 
@@ -71,7 +79,17 @@ func pong(w http.ResponseWriter, r *http.Request) {
 
 func PrintMemory(w http.ResponseWriter, r *http.Request) {
 	dat := GetMemory()
-	fmt.Fprintf(w, "Currently using: %d", dat.MemTotal)
+	fmt.Fprintf(w, "Total: %d\n", dat.MemTotal)
+	fmt.Fprintf(w, "Used: %d\n", 
+		dat.MemTotal - dat.MemFree - dat.Buffers - dat.Cached)
+	fmt.Fprintf(w, "Available: %d\n", dat.MemAvailable)
+	fmt.Fprintf(w, "Buff/Cache: %d/%d\n", dat.Buffers,dat.Cached)
+}
+
+// func GetCPU() CPU {
+//}
+
+func PrintCPU(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
@@ -79,5 +97,5 @@ func main() {
 
 	http.HandleFunc("/ping", pong)
 	http.HandleFunc("/memory", PrintMemory)
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(Port, nil)
 }
