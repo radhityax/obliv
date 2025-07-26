@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"bufio"
-	_ "io"
+_	"io"
 	"os"
 	"strings"
 	"strconv"
+
+	"obliv/src/front"
 )
 
 var Port string = ":2305"
@@ -95,6 +97,7 @@ func PrintCPU(w http.ResponseWriter, r *http.Request) {
 func main() {
 	intro()
 
+	http.HandleFunc("/", front.Homepage)
 	http.HandleFunc("/ping", pong)
 	http.HandleFunc("/memory", PrintMemory)
 	http.ListenAndServe(Port, nil)
