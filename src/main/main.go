@@ -31,7 +31,10 @@ func main() {
 	http.HandleFunc("/", front.Homepage)
 	http.HandleFunc("/ping", pong)
 	http.HandleFunc("/memory", front.MemoryPage)
-
+	http.HandleFunc("/memory-data", front.MemoryData)
+	
+	http.HandleFunc("/register", front.RegisterPage)
+	http.HandleFunc("/login", front.Loginpage)
 	/*
 	i dont know the best way to know about it
 	http.HandleFunc("/cpu", front.CpuPage)

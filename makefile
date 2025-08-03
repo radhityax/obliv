@@ -1,4 +1,4 @@
-src = src/main.go
+src = src/main/main.go
 out = obliv
 
 build:
