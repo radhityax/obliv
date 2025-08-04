@@ -11,7 +11,7 @@ _	"strconv"
 _	"time"
 
 	"obliv/src/front"
-_	"obliv/src/system"
+	"obliv/src/system"
 )
 
 var Port string = ":2305"
@@ -27,6 +27,11 @@ func pong(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	intro()
+	system.CreateFile()
+	dtb := system.ConnectDatabase()
+	defer dtb.Close()
+
+	system.SetupDatabase(dtb)
 
 	http.HandleFunc("/", front.Homepage)
 	http.HandleFunc("/ping", pong)

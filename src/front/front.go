@@ -7,29 +7,31 @@ import (
 	"obliv/src/system"
 )
 
+var head = `
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>obliv</title>
+</head>
+`
+
+var footer = `
+</html>
+`
+
 func Homepage(w http.ResponseWriter, r *http.Request) {
 	html := `
-	<html>
-	<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>obliv</title>
-	</head>
 	<body>
-	<p>this is obliv</p>
+	<p>this is obliv homepage</p>
 	</body>
-	</html>
 	`
+	fmt.Fprintf(w, head)
 	fmt.Fprintf(w, html)
 }
 func MemoryPage(w http.ResponseWriter, r *http.Request) {
 	dat := system.GetMemory()
 	html := `
-	<html>
-	<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>obliv</title>
 	<script>
 	function updateMemory() {
 		fetch('/memory-data')
@@ -55,9 +57,11 @@ func MemoryPage(w http.ResponseWriter, r *http.Request) {
 	</body>
 	</html>
 	`
+	fmt.Fprintf(w, head)
 	fmt.Fprintf(w, html, dat.MemTotal,
 	dat.MemTotal-dat.MemFree-dat.Buffers-dat.Cached, dat.MemAvailable, 
 	dat.Buffers, dat.Cached)
+	fmt.Fprintf(w, footer)
 }
 
 func MemoryData(w http.ResponseWriter, r *http.Request) {
@@ -94,6 +98,34 @@ func CpuPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func RegisterPage(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method == "POST" {
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+
+		dtb := system.ConnectDatabase()
+		defer dtb.Close()
+
+		system.Register(dtb, username, password)
+
+		// debug
+		fmt.Printf("User submitted : %s\n", username)
+		fmt.Printf("Password submitted : %s\n", password)
+		return
+	}
+
+	body :=
+	`
+	<p>register</p>
+	<form method="POST">
+	<input type="text" name="username" placeholder="username">
+	<input type="password" name="password" placeholder="password">
+	<button type="submit">register</button>
+	</form>
+	`
+	fmt.Fprintf(w, head)
+	fmt.Fprintf(w, body)
+	fmt.Fprintf(w, footer)
 }
 
 func Loginpage(w http.ResponseWriter, r *http.Request) {
