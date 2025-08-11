@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"encoding/json"
 	"obliv/src/system"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var head = `
@@ -100,17 +101,33 @@ func CpuPage(w http.ResponseWriter, r *http.Request) {
 func RegisterPage(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "POST" {
+		err := r.ParseForm()
+		
+		if err != nil {
+			http.Error(w, "failed while processing a form",
+			http.StatusBadRequest)
+			return
+		}
+
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 
-		dtb := system.ConnectDatabase()
-		defer dtb.Close()
+		db := system.ConnectDatabase()
+		defer db.Close()
 
-		system.Register(dtb, username, password)
-
-		// debug
-		fmt.Printf("User submitted : %s\n", username)
-		fmt.Printf("Password submitted : %s\n", password)
+		err = system.Register(db, username, password)
+		if err != nil {
+			fmt.Fprintf(w, head)
+			fmt.Fprintf(w, `
+			<body>
+			<p style="color: red;">Failed: %s</p>
+			<p><a href="/register">Try again</a></p>
+			</body>
+			`, err.Error())
+			fmt.Fprintf(w, footer)
+			return
+		}
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
@@ -129,4 +146,64 @@ func RegisterPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func Loginpage(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		err := r.ParseForm()
+		if err != nil {
+			http.Error(w, "Failed while processing form",
+			http.StatusBadRequest)
+			return
+		}
+
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+
+		db := system.ConnectDatabase()
+		defer db.Close()
+
+		var hashedPassword string
+		query := `SELECT password FROM account WHERE username = ?`
+		err = db.QueryRow(query, username).Scan(&hashedPassword)
+		if err != nil {
+			fmt.Fprintf(w, head)
+			fmt.Fprintf(w, `
+			<body>
+			<p style="color: red;">cant find the username</p>
+			<p><a href="/login">try again</a></p>
+			</body>
+			`)
+			fmt.Fprintf(w, footer)
+			return
+		}
+
+		err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+        if err != nil {
+            fmt.Fprintf(w, head)
+            fmt.Fprintf(w, `
+            <body>
+            <p style="color: red;">Password salah</p>
+            <p><a href="/login">Coba lagi</a></p>
+            </body>
+            `)
+            fmt.Fprintf(w, footer)
+            return
+        }
+
+        http.Redirect(w, r, "/", http.StatusSeeOther)
+        return
+    }
+
+    body := `
+    <body>
+    <p>login</p>
+    <form method="POST">
+    <input type="text" name="username" placeholder="username" required>
+    <input type="password" name="password" placeholder="password" required>
+    <button type="submit">login</button>
+    </form>
+    </body>
+    `
+    fmt.Fprintf(w, head)
+    fmt.Fprintf(w, body)
+    fmt.Fprintf(w, footer)
+
 }

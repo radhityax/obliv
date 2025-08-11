@@ -27,8 +27,14 @@ func pong(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	intro()
-	system.CreateFile()
+	
+	if err := system.CreateFile(); err != nil {
+		fmt.Printf("Failed while creating a database file: %v\n", err)
+		return
+	}
+
 	dtb := system.ConnectDatabase()
+
 	defer dtb.Close()
 
 	system.SetupDatabase(dtb)
@@ -45,5 +51,8 @@ func main() {
 	http.HandleFunc("/cpu", front.CpuPage)
 	*/
 
-	http.ListenAndServe(Port, nil)
+	fmt.Printf("currently running on %s\n", Port)
+	if err := http.ListenAndServe(Port, nil); err != nil {
+		fmt.Printf("failed run server: %v\n", err)
+	}
 }

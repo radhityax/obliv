@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"os"
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Account struct {
@@ -13,14 +14,16 @@ type Account struct {
 	Password string
 }
 
-func CreateFile() {
+func CreateFile() error {
 	filename := "./data/obliv.db"
-	file, err := os.Create(filename)
-	if err != nil {
-		fmt.Printf("error while creating a file: %v\n", err)
-		return
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		file, err := os.Create(filename)
+		if err != nil {
+			return fmt.Errorf("%v", err)
+		}
+		file.Close()
 	}
-	defer file.Close()
+	return nil
 }
 
 func ConnectDatabase() *sql.DB {
@@ -35,25 +38,46 @@ func SetupDatabase(db *sql.DB) {
 	stmt :=
 	`
 	CREATE TABLE IF NOT EXISTS account (
-		USERNAME TEXT NOT NULL,
-		PASSWORD TEXT NOT NULL
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT NOT NULL UNIQUE,
+		password TEXT NOT NULL
 	)
 	`
 
 	_, err := db.Exec(stmt)
 	if err != nil {
-		fmt.Printf("error while setting up database")
+		fmt.Printf("error while setting up database: %v\n", err)
 	}
 }
 
-func Register(db *sql.DB, username, password string) {
-	stmt :=
-	`
+func Register(db *sql.DB, username, password string) error {
+	if len(username) < 3 || len(password) < 8 {
+		return fmt.Errorf("username < 3 || password < 8")
+	}
+
+	hashpass, err := bcrypt.GenerateFromPassword([]byte(password),
+	bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to generate a password: %v", err)
+	}
+
+	stmt := `
 	INSERT INTO account (USERNAME, PASSWORD)
 	VALUES (?,?)
 	`
-	_, err := db.Exec(stmt, username, password)
+
+	result, err := db.Exec(stmt, username, hashpass)
 	if err != nil {
-		fmt.Printf("error while inserting user")
+		if err.Error() == "UNIQUE constraint failed: account.username" {
+			return fmt.Errorf("username %s sudah digunakan", err)
+		}
+		return fmt.Errorf("gagal menyimpan pengguna: %v", err)
 	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("tidak ada data yang disimpan")
+	}
+
+	return nil
 }
