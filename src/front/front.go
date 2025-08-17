@@ -3,8 +3,9 @@ package front
 import (
 	"net/http"
 	"fmt"
-	"encoding/json"
 	"obliv/src/system"
+	"github.com/gin-gonic/gin"
+	"github.com/gin-contrib/sessions"
 )
 
 var head = `
@@ -20,16 +21,18 @@ var footer = `
 </html>
 `
 
-func Homepage(w http.ResponseWriter, r *http.Request) {
+func HomePage(c *gin.Context) {
 	html := `
 	<body>
 	<p>this is obliv homepage</p>
 	</body>
 	`
-	fmt.Fprintf(w, head)
-	fmt.Fprintf(w, html)
+	c.Writer.Write([]byte(head))
+	c.Writer.Write([]byte(html))
+	c.Writer.Write([]byte(footer))
 }
-func MemoryPage(w http.ResponseWriter, r *http.Request) {
+
+func MemoryPage(c *gin.Context) {
 	dat := system.GetMemory()
 	html := `
 	<script>
@@ -57,14 +60,15 @@ func MemoryPage(w http.ResponseWriter, r *http.Request) {
 	</body>
 	</html>
 	`
-	fmt.Fprintf(w, head)
-	fmt.Fprintf(w, html, dat.MemTotal,
-	dat.MemTotal-dat.MemFree-dat.Buffers-dat.Cached, dat.MemAvailable, 
-	dat.Buffers, dat.Cached)
-	fmt.Fprintf(w, footer)
+	memUsed := dat.MemTotal - dat.MemFree - dat.Buffers - dat.Cached
+
+	c.Writer.Write([]byte(head))
+	c.Writer.Write([]byte(fmt.Sprintf(html, dat.MemTotal, memUsed,
+	dat.MemAvailable, dat.Buffers, dat.Cached)))
+	c.Writer.Write([]byte(footer))
 }
 
-func MemoryData(w http.ResponseWriter, r *http.Request) {
+func MemoryData(c *gin.Context) {
 	dat := system.GetMemory()
 	response := map[string]interface{}{
 		"memTotal":    dat.MemTotal,
@@ -73,12 +77,11 @@ func MemoryData(w http.ResponseWriter, r *http.Request) {
 		"buffers":     dat.Buffers,
 		"cached":      dat.Cached,
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	c.JSON(http.StatusOK, response)
 }
 
 
-func CpuPage(w http.ResponseWriter, r *http.Request) {
+func CpuPage(c *gin.Context) {
 	html := `
 	<html>
 	<head>
@@ -94,39 +97,31 @@ func CpuPage(w http.ResponseWriter, r *http.Request) {
 	</html>
 	`
 
-	fmt.Fprintf(w, html, system.PrintCPU())
+	c.Writer.Write([]byte(fmt.Sprintf(html, system.PrintCPU())))
 }
 
-func RegisterPage(w http.ResponseWriter, r *http.Request) {
+func RegisterPage(c *gin.Context) {
 
-	if r.Method == "POST" {
-		err := r.ParseForm()
+	if c.Request.Method == http.MethodPost {
 		
-		if err != nil {
-			http.Error(w, "failed while processing a form",
-			http.StatusBadRequest)
-			return
-		}
-
-		username := r.FormValue("username")
-		password := r.FormValue("password")
+		username := c.PostForm("username")
+		password := c.PostForm("password")
 
 		db := system.ConnectDatabase()
 		defer db.Close()
 
-		err = system.Register(db, username, password)
+		err := system.Register(db, username, password)
 		if err != nil {
-			fmt.Fprintf(w, head)
-			fmt.Fprintf(w, `
+			c.Writer.Write([]byte(head))
+			c.Writer.Write([]byte(fmt.Sprintf(`
 			<body>
 			<p style="color: red;">Failed: %s</p>
 			<p><a href="/register">Try again</a></p>
-			</body>
-			`, err.Error())
-			fmt.Fprintf(w, footer)
+			</body>`, err.Error())))
+			c.Writer.Write([]byte(footer))
 			return
 		}
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		c.Redirect(http.StatusSeeOther, "/login")
 		return
 	}
 
@@ -139,70 +134,70 @@ func RegisterPage(w http.ResponseWriter, r *http.Request) {
 	<button type="submit">register</button>
 	</form>
 	`
-	fmt.Fprintf(w, head)
-	fmt.Fprintf(w, body)
-	fmt.Fprintf(w, footer)
+
+	c.Writer.Write([]byte(head))
+	c.Writer.Write([]byte(body))
+	c.Writer.Write([]byte(footer))
 }
 
-func Loginpage(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		err := r.ParseForm()
-		if err != nil {
-			http.Error(w, "Failed while processing form",
-			http.StatusBadRequest)
-			return
-		}
-
-		username := r.FormValue("username")
-		password := r.FormValue("password")
+func LoginPage(c *gin.Context) {
+	if c.Request.Method == http.MethodPost {
+		username := c.PostForm("username")
+		password := c.PostForm("password")
 
 		db := system.ConnectDatabase()
 		defer db.Close()
 
 		var hashedPassword string
 		query := `SELECT password FROM account WHERE username = ?`
-		err = db.QueryRow(query, username).Scan(&hashedPassword)
+		err := db.QueryRow(query, username).Scan(&hashedPassword)
 		if err != nil {
-			fmt.Fprintf(w, head)
-			fmt.Fprintf(w, `
-			<body>
-			<p style="color: red;">cant find the username</p>
-			<p><a href="/login">try again</a></p>
-			</body>
-			`)
-			fmt.Fprintf(w, footer)
+			c.String(http.StatusUnauthorized, "Username ga ketemu")
 			return
 		}
 
-		erro := system.CheckPassword(hashedPassword, password)
-		if erro != true {
-            fmt.Fprintf(w, head)
-            fmt.Fprintf(w, `
-            <body>
-            <p style="color: red;">Password salah</p>
-            <p><a href="/login">Coba lagi</a></p>
-            </body>
-            `)
-            fmt.Fprintf(w, footer)
-            return
+		if !system.CheckPassword(hashedPassword, password) {
+			c.String(http.StatusUnauthorized, "Invalid passwordnya")
+			return
         }
 
-        http.Redirect(w, r, "/", http.StatusSeeOther)
-        return
+		session := sessions.Default(c)
+		session.Set("user", username)
+		session.Save()
+
+		c.Redirect(http.StatusSeeOther, "/")
+		return
     }
 
-    body := `
-    <body>
-    <p>login</p>
-    <form method="POST">
-    <input type="text" name="username" placeholder="username" required>
-    <input type="password" name="password" placeholder="password" required>
-    <button type="submit">login</button>
-    </form>
-    </body>
-    `
-    fmt.Fprintf(w, head)
-    fmt.Fprintf(w, body)
-    fmt.Fprintf(w, footer)
+	loginForm := `
+	<form method="POST">
+	<input name="username" placeholder="Username" required>
+	<input name="password" type="password" placeholder="Password" required>
+	<button type="submit">Login</button>
+	</form>`
 
+	c.Header("Content-Type", "text/html")
+	c.String(http.StatusOK, loginForm)
+}
+
+func Logout(c *gin.Context) {
+	session := sessions.Default(c)
+	session.Clear()
+	session.Save()
+	c.Redirect(http.StatusSeeOther, "/login")
+}	
+func FrontSetup(r *gin.Engine) {
+
+	r.GET("/", system.AuthRequired(), HomePage)
+	r.GET("/memory", system.AuthRequired(), MemoryPage)
+	r.GET("/memory-data",  system.AuthRequired(), MemoryData)
+	r.GET("/cpu", system.AuthRequired(),CpuPage)
+
+	r.GET("/register", RegisterPage)
+	r.POST("/register", RegisterPage)
+
+	r.GET("/login", LoginPage)
+	r.POST("/login", LoginPage)
+
+	r.GET("/logout", Logout)
 }
