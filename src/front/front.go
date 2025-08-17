@@ -18,6 +18,7 @@ var head = `
 `
 
 var footer = `
+<footer><p>powered by obliv - open source linux control panel</p></footer>
 </html>
 `
 
@@ -100,46 +101,6 @@ func CpuPage(c *gin.Context) {
 	c.Writer.Write([]byte(fmt.Sprintf(html, system.PrintCPU())))
 }
 
-func RegisterPage(c *gin.Context) {
-
-	if c.Request.Method == http.MethodPost {
-		
-		username := c.PostForm("username")
-		password := c.PostForm("password")
-
-		db := system.ConnectDatabase()
-		defer db.Close()
-
-		err := system.Register(db, username, password)
-		if err != nil {
-			c.Writer.Write([]byte(head))
-			c.Writer.Write([]byte(fmt.Sprintf(`
-			<body>
-			<p style="color: red;">Failed: %s</p>
-			<p><a href="/register">Try again</a></p>
-			</body>`, err.Error())))
-			c.Writer.Write([]byte(footer))
-			return
-		}
-		c.Redirect(http.StatusSeeOther, "/login")
-		return
-	}
-
-	body :=
-	`
-	<p>register</p>
-	<form method="POST">
-	<input type="text" name="username" placeholder="username">
-	<input type="password" name="password" placeholder="password">
-	<button type="submit">register</button>
-	</form>
-	`
-
-	c.Writer.Write([]byte(head))
-	c.Writer.Write([]byte(body))
-	c.Writer.Write([]byte(footer))
-}
-
 func LoginPage(c *gin.Context) {
 	if c.Request.Method == http.MethodPost {
 		username := c.PostForm("username")
@@ -178,6 +139,7 @@ func LoginPage(c *gin.Context) {
 
 	c.Header("Content-Type", "text/html")
 	c.String(http.StatusOK, loginForm)
+	c.Writer.Write([]byte(footer))
 }
 
 func Logout(c *gin.Context) {
@@ -192,9 +154,6 @@ func FrontSetup(r *gin.Engine) {
 	r.GET("/memory", system.AuthRequired(), MemoryPage)
 	r.GET("/memory-data",  system.AuthRequired(), MemoryData)
 	r.GET("/cpu", system.AuthRequired(),CpuPage)
-
-	r.GET("/register", RegisterPage)
-	r.POST("/register", RegisterPage)
 
 	r.GET("/login", LoginPage)
 	r.POST("/login", LoginPage)

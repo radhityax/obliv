@@ -50,31 +50,3 @@ func SetupDatabase(db *sql.DB) {
 		fmt.Printf("error while setting up database: %v\n", err)
 	}
 }
-
-func Register(db *sql.DB, username, password string) error {
-	if len(username) < 3 || len(password) < 8 {
-		return fmt.Errorf("username < 3 || password < 8")
-	}
-
-	hashpass, err := HashPassword(password)
-
-	stmt := `
-	INSERT INTO account (USERNAME, PASSWORD)
-	VALUES (?,?)
-	`
-
-	result, err := db.Exec(stmt, username, hashpass)
-	if err != nil {
-		if err.Error() == "UNIQUE constraint failed: account.username" {
-			return fmt.Errorf("username %s sudah digunakan", err)
-		}
-		return fmt.Errorf("gagal menyimpan pengguna: %v", err)
-	}
-
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		return fmt.Errorf("tidak ada data yang disimpan")
-	}
-
-	return nil
-}

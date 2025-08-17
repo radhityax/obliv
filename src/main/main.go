@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"obliv/src/system"
 	"obliv/src/front"
-
+	"io"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -27,11 +27,14 @@ func main() {
 	defer dtb.Close()
 	system.SetupDatabase(dtb)
 
+	gin.SetMode(gin.ReleaseMode)
+	gin.DefaultWriter = io.Discard
 	r := gin.Default()
-
 	store := cookie.NewStore([]byte("silampukau"))
 	r.Use(sessions.Sessions("my-session", store))
 
 	front.FrontSetup(r)
+	go system.Shell()
 	r.Run(Port)
+
 }
