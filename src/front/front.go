@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"encoding/json"
 	"obliv/src/system"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var head = `
@@ -175,8 +174,8 @@ func Loginpage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-        if err != nil {
+		erro := system.CheckPassword(hashedPassword, password)
+		if erro != true {
             fmt.Fprintf(w, head)
             fmt.Fprintf(w, `
             <body>

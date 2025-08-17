@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+
 _	"bufio"
 _	"io/ioutil"
 _	"os"
@@ -46,6 +47,7 @@ func main() {
 	
 	http.HandleFunc("/register", front.RegisterPage)
 	http.HandleFunc("/login", front.Loginpage)
+	
 	/*
 	i dont know the best way to know about it
 	http.HandleFunc("/cpu", front.CpuPage)

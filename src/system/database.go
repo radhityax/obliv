@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"os"
 	_ "github.com/mattn/go-sqlite3"
-	"golang.org/x/crypto/bcrypt"
+	_ "golang.org/x/crypto/bcrypt"
 )
 
 type Account struct {
@@ -15,6 +15,7 @@ type Account struct {
 }
 
 func CreateFile() error {
+	os.Mkdir("./data", os.ModeDir)
 	filename := "./data/obliv.db"
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		file, err := os.Create(filename)
@@ -55,11 +56,7 @@ func Register(db *sql.DB, username, password string) error {
 		return fmt.Errorf("username < 3 || password < 8")
 	}
 
-	hashpass, err := bcrypt.GenerateFromPassword([]byte(password),
-	bcrypt.DefaultCost)
-	if err != nil {
-		return fmt.Errorf("failed to generate a password: %v", err)
-	}
+	hashpass, err := HashPassword(password)
 
 	stmt := `
 	INSERT INTO account (USERNAME, PASSWORD)
