@@ -25,8 +25,11 @@ func ShellMenu(input string) {
 	case "H", "h":
 		fmt.Println("n - new user")
 		fmt.Println("h - help")
+		fmt.Println("i - info")
 		fmt.Println("r - reset password")
 		fmt.Println("v - version")
+	case "I", "i":
+		fmt.Println("Running on port 2305")
 	case "R", "r":
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Printf("Input username: ")

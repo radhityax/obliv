@@ -22,10 +22,16 @@ var footer = `
 </html>
 `
 
+var back = "<a href=\"/\">back</a>"
+
 func HomePage(c *gin.Context) {
 	html := `
 	<body>
 	<p>this is obliv homepage</p>
+	<ul>
+	<li><a href="/memory">memory</a></li>
+	<li><a href="/cpu">cpu</a></li>
+	</ul>
 	</body>
 	`
 	c.Writer.Write([]byte(head))
@@ -66,6 +72,7 @@ func MemoryPage(c *gin.Context) {
 	c.Writer.Write([]byte(head))
 	c.Writer.Write([]byte(fmt.Sprintf(html, dat.MemTotal, memUsed,
 	dat.MemAvailable, dat.Buffers, dat.Cached)))
+	c.Writer.Write([]byte(back))
 	c.Writer.Write([]byte(footer))
 }
 
@@ -81,26 +88,70 @@ func MemoryData(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+func CpuData(c *gin.Context) {
+	stats, _ := system.GetCpuStats()
+	response := map[string]interface{}{
+		"User": stats.User,
+		"Nice": stats.Nice,
+		"System": stats.System,
+		"Idle": stats.Idle,
+		"Iowait": stats.Iowait,
+		"Irq": stats.Irq,
+		"Softirq": stats.Softirq,
+		"Steal": stats.Steal,
+		"Guest": stats.Guest,
+		"GuestNice": stats.GuestNice,
+	}
+	c.JSON(http.StatusOK, response)
+}
+
 
 func CpuPage(c *gin.Context) {
+	data, _ := system.GetCpuStats()
 	html := `
-	<html>
-	<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta http-equiv="refresh" content="1" />
-	<title>obliv</title>
+	<script>
+	function updatecpu() {
+		fetch('/cpu-data')
+		.then(response => response.json())
+		.then(data => {
+			document.getElementById("User").innerText = 'User: ' + data.User;
+			document.getElementById("Nice").innerText = 'Nice: ' + data.Nice;
+			document.getElementById("System").innerText = 'System: ' + data.System;
+			document.getElementById("Idle").innerText = 'Idle: ' + data.Idle;
+			document.getElementById("Iowait").innerText = 'Iowait: ' + data.Iowait;
+			document.getElementById("Irq").innerText = 'Irq: ' + data.Irq;
+			document.getElementById("Softirq").innerText = 'Softirq: ' + data.Softirq;
+			document.getElementById("Steal").innerText = 'Steal: ' + data.Steal;
+			document.getElementById("Guest").innerText = 'Guest: ' + data.Guest;
+			document.getElementById("GuestNice").innerText = 'GuestNice: ' + data.GuestNice;
+		});
+	}
+	setInterval(updatecpu, 3000);
+	</script>
 	</head>
 	<body>
 	<p>this is cpu</p>
-	<p>average: %f</p>
+	<p id="User">User: %d</p>
+	<p id="Nice">Nice: %d</p>
+	<p id="System">System: %d</p>
+	<p id="Idle">Idle: %d</p>
+	<p id="Iowait">Iowait: %d</p>
+	<p id="Irq">Irq: %d</p>
+	<p id="Softirq">Softirq: %d</p>
+	<p id="Steal">Steal: %d</p>
+	<p id="Guest">Guest: %d</p>
+	<p id="GuestNice">GuestNice: %d</p>
 	</body>
 	</html>
 	`
 
-	c.Writer.Write([]byte(fmt.Sprintf(html, system.PrintCPU())))
+	c.Writer.Write([]byte(head))
+	c.Writer.Write([]byte(fmt.Sprintf(html, data.User, data.Nice, data.System,
+	data.Idle, data.Iowait, data.Irq, data.Softirq, data.Steal, data.Guest,
+	data.GuestNice)))
+	c.Writer.Write([]byte(back))
+	c.Writer.Write([]byte(footer))
 }
-
 func LoginPage(c *gin.Context) {
 	if c.Request.Method == http.MethodPost {
 		username := c.PostForm("username")
@@ -154,7 +205,7 @@ func FrontSetup(r *gin.Engine) {
 	r.GET("/memory", system.AuthRequired(), MemoryPage)
 	r.GET("/memory-data",  system.AuthRequired(), MemoryData)
 	r.GET("/cpu", system.AuthRequired(),CpuPage)
-
+	r.GET("/cpu-data", system.AuthRequired(),CpuData)
 	r.GET("/login", LoginPage)
 	r.POST("/login", LoginPage)
 

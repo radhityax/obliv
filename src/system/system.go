@@ -20,17 +20,17 @@ type Memory struct {
 	BuffCache int
 }
 type CPU struct {
-	loadAvg float64
-	idle uint64
-	user uint64
-	nice uint64
-	system uint64
-	iowait uint64
-	irq uint64
-	softirq uint64
-	steal uint64
-	guest uint64
-	guestNice uint64
+	LoadAvg float64
+	Idle uint64
+	User uint64
+	Nice uint64
+	System uint64
+	Iowait uint64
+	Irq uint64
+	Softirq uint64
+	Steal uint64
+	Guest uint64
+	GuestNice uint64
 }
 func check(e error) {
 	if e != nil {
@@ -87,7 +87,7 @@ func PrintMemory(w http.ResponseWriter, r *http.Request) {
 */
 
 
-func getCpuStats() (CPU, error) {
+func GetCpuStats() (CPU, error) {
 	dat, err := ioutil.ReadFile("/proc/stat")
 	check(err)
 
@@ -96,36 +96,36 @@ func getCpuStats() (CPU, error) {
 	fields := strings.Fields(cpuLine)
 
 	stats := CPU{}
-	stats.user, _ = strconv.ParseUint(fields[1], 10, 64)
-	stats.nice, _ = strconv.ParseUint(fields[2], 10, 64)
-	stats.system, _ = strconv.ParseUint(fields[3], 10, 64)
-	stats.idle,  _ = strconv.ParseUint(fields[4], 10, 64)
-	stats.iowait, _ = strconv.ParseUint(fields[5], 10, 64)
-	stats.irq, _ = strconv.ParseUint(fields[6], 10, 64)
-	stats.softirq, _ = strconv.ParseUint(fields[7], 10, 64)
-	stats.steal, _ = strconv.ParseUint(fields[8], 10, 64)
-	stats.guest, _ = strconv.ParseUint(fields[9], 10, 64)
-	stats.guestNice, _ = strconv.ParseUint(fields[10], 10, 64)
+	stats.User, _ = strconv.ParseUint(fields[1], 10, 64)
+	stats.Nice, _ = strconv.ParseUint(fields[2], 10, 64)
+	stats.System, _ = strconv.ParseUint(fields[3], 10, 64)
+	stats.Idle,  _ = strconv.ParseUint(fields[4], 10, 64)
+	stats.Iowait, _ = strconv.ParseUint(fields[5], 10, 64)
+	stats.Irq, _ = strconv.ParseUint(fields[6], 10, 64)
+	stats.Softirq, _ = strconv.ParseUint(fields[7], 10, 64)
+	stats.Steal, _ = strconv.ParseUint(fields[8], 10, 64)
+	stats.Guest, _ = strconv.ParseUint(fields[9], 10, 64)
+	stats.GuestNice, _ = strconv.ParseUint(fields[10], 10, 64)
 	return stats, err
 }
 
-func PrintCPU() (cpuUsage float64) {
-	stats1, err := getCpuStats()
+func PrintCpu() (cpuUsage float64) {
+	stats1, err := GetCpuStats()
 	check(err)
 
 	time.Sleep(1 * time.Second)
 
-	stats2, err := getCpuStats()
+	stats2, err := GetCpuStats()
 	check(err)
 
 	totalTimeDiff := (
-		stats2.user + stats2.nice + stats2.system + stats2.idle +
-		stats2.iowait + stats2.irq + stats2.softirq + stats2.steal +
-		stats2.guest + stats2.guestNice) - (stats1.user + stats1.nice +
-		stats1.system + stats1.idle + stats1.iowait +
-		stats1.irq + stats1.softirq + stats1.steal + stats1.guest + stats1.guestNice)
+		stats2.User + stats2.Nice + stats2.System + stats2.Idle +
+		stats2.Iowait + stats2.Irq + stats2.Softirq + stats2.Steal +
+		stats2.Guest + stats2.GuestNice) - (stats1.User + stats1.Nice +
+		stats1.System + stats1.Idle + stats1.Iowait +
+		stats1.Irq + stats1.Softirq + stats1.Steal + stats1.Guest + stats1.GuestNice)
 
-	idleTimeDiff := stats2.idle - stats1.idle
+	idleTimeDiff := stats2.Idle - stats1.Idle
 
 	if totalTimeDiff > 0 {
 		cpuUsage = float64(totalTimeDiff-idleTimeDiff) / float64(totalTimeDiff) * 100
