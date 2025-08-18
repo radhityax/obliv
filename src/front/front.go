@@ -111,8 +111,8 @@ func CpuData(c *gin.Context) {
 		"Guest": stats.Guest,
 		"GuestNice": stats.GuestNice,
 		"LoadOne": loadone,
-		"LoadFive": loadtwo,
-		"LoadFiveTeen": loadthree,
+		"LoadTwo": loadtwo,
+		"LoadThree": loadthree,
 	}
 	c.JSON(http.StatusOK, response)
 }
@@ -120,6 +120,7 @@ func CpuData(c *gin.Context) {
 
 func CpuPage(c *gin.Context) {
 	data, _ := system.GetCpuStats()
+	loadone, loadtwo, loadthree, _ := system.GetLoadAverage()
 	html := `
 	<script>
 	function updatecpu() {
@@ -136,6 +137,9 @@ func CpuPage(c *gin.Context) {
 			document.getElementById("Steal").innerText = 'Steal: ' + data.Steal;
 			document.getElementById("Guest").innerText = 'Guest: ' + data.Guest;
 			document.getElementById("GuestNice").innerText = 'GuestNice: ' + data.GuestNice;
+			document.getElementById("LoadOne").innerText = 'Load One: ' + data.LoadOne;
+			document.getElementById("LoadTwo").innerText = 'Load Two: ' + data.LoadTwo;
+			document.getElementById("LoadThree").innerText = 'Load Three: ' + data.LoadThree;
 		});
 	}
 	setInterval(updatecpu, 3000);
@@ -153,7 +157,9 @@ func CpuPage(c *gin.Context) {
 	<p id="Steal">Steal: %d</p>
 	<p id="Guest">Guest: %d</p>
 	<p id="GuestNice">GuestNice: %d</p>
-	<p id="
+	<p id="LoadOne">Load One: %f</p>
+	<p id="LoadTwo">Load Two: %f</p>
+	<p id="LoadThree">Load Three: %f</p>
 	</body>
 	</html>
 	`
@@ -161,7 +167,7 @@ func CpuPage(c *gin.Context) {
 	c.Writer.Write([]byte(head))
 	c.Writer.Write([]byte(fmt.Sprintf(html, data.User, data.Nice, data.System,
 	data.Idle, data.Iowait, data.Irq, data.Softirq, data.Steal, data.Guest,
-	data.GuestNice)))
+	data.GuestNice, loadone, loadtwo, loadthree)))
 	c.Writer.Write([]byte(back))
 	c.Writer.Write([]byte(footer))
 }
@@ -211,7 +217,8 @@ func Logout(c *gin.Context) {
 	session.Clear()
 	session.Save()
 	c.Redirect(http.StatusSeeOther, "/login")
-}	
+}
+
 func FrontSetup(r *gin.Engine) {
 
 	r.GET("/", system.AuthRequired(), HomePage)

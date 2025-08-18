@@ -9,6 +9,7 @@ _	"net/http"
 	"strings"
 	"strconv"
 	"time"
+	"syscall"
 )
 
 type Memory struct {
@@ -32,8 +33,8 @@ type CPU struct {
 	Guest uint64
 	GuestNice uint64
 	LoadOne float64
-	LoadFive float64
-	LoadFiveTeen float64
+	LoadTwo float64
+	LoadThree float64
 }
 func check(e error) {
 	if e != nil {
@@ -165,3 +166,28 @@ func parseLoad(loadStr string) (float64, error) {
 	return strconv.ParseFloat(loadStr, 64)
 }
 
+func DiskUsage() (int, int, int, int) {
+	var stat syscall.Statfs_t
+
+	err := syscall.Statfs("/", &stat)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return 0,0,0,0
+	}
+
+	blockSize := uint64(stat.Bsize)
+
+	total := stat.Blocks * blockSize
+	free := stat.Bfree * blockSize
+	available := stat.Bavail * blockSize
+	used := total - free
+
+	const bytesInMB = 1024 * 1024
+	totalMB := total / bytesInMB
+	usedMB := used / bytesInMB
+	freeMB := free / bytesInMB
+	availableMB := available / bytesInMB
+
+	return int(totalMB), int(usedMB), int(freeMB), int(availableMB)
+
+}
