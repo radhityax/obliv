@@ -5,8 +5,8 @@ import (
 	"os/exec"
 	"os"
 	"runtime"
-	"obliv/src/system"
-	"obliv/src/front"
+	"delphinium/src/system"
+	"delphinium/src/front"
 	"io"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/sessions"
@@ -16,8 +16,8 @@ import (
 var Port string = ":2305"
 
 func intro() {
-	fmt.Println("obliv - control panel [BETA]")
-	fmt.Println("https://github.com/radh1tya/obliv");
+	fmt.Println("delphinium - control panel [BETA]")
+	fmt.Println("https://github.com/radhityax/delphinium");
 }
 
 func runCmd(name string, arg ...string) {

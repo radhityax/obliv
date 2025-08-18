@@ -3,7 +3,7 @@ package front
 import (
 	"net/http"
 	"fmt"
-	"obliv/src/system"
+	"delphinium/src/system"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/sessions"
 )
@@ -13,27 +13,34 @@ var head = `
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>obliv</title>
+<title>delphinium</title>
 </head>
 `
 
 var footer = `
-<footer><p>powered by obliv - open source linux control panel</p></footer>
+<footer><p>powered by delphinium - open source linux control panel</p></footer>
 </html>
 `
 
 var back = "<a href=\"/\">back</a>"
 
+func GetUsername(c *gin.Context) string {
+	session := sessions.Default(c)
+	return session.Get("user").(string)
+}
 func HomePage(c *gin.Context) {
-	html := `
+	username := GetUsername(c)
+
+	html := fmt.Sprintf(`
 	<body>
-	<p>this is obliv homepage</p>
+	<p>this is delphinium homepage</p>
+	<p>hello, %s. (<a href="/logout">logout</a>)</p>
 	<ul>
 	<li><a href="/memory">memory</a></li>
 	<li><a href="/cpu">cpu</a></li>
 	</ul>
 	</body>
-	`
+	`, username)
 	c.Writer.Write([]byte(head))
 	c.Writer.Write([]byte(html))
 	c.Writer.Write([]byte(footer))
@@ -90,6 +97,8 @@ func MemoryData(c *gin.Context) {
 
 func CpuData(c *gin.Context) {
 	stats, _ := system.GetCpuStats()
+	loadone, loadtwo, loadthree, _ := system.GetLoadAverage()
+
 	response := map[string]interface{}{
 		"User": stats.User,
 		"Nice": stats.Nice,
@@ -101,6 +110,9 @@ func CpuData(c *gin.Context) {
 		"Steal": stats.Steal,
 		"Guest": stats.Guest,
 		"GuestNice": stats.GuestNice,
+		"LoadOne": loadone,
+		"LoadFive": loadtwo,
+		"LoadFiveTeen": loadthree,
 	}
 	c.JSON(http.StatusOK, response)
 }
@@ -141,6 +153,7 @@ func CpuPage(c *gin.Context) {
 	<p id="Steal">Steal: %d</p>
 	<p id="Guest">Guest: %d</p>
 	<p id="GuestNice">GuestNice: %d</p>
+	<p id="
 	</body>
 	</html>
 	`

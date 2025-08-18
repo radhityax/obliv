@@ -1,7 +1,7 @@
 package system
 
 import (
-_	"fmt"
+	"fmt"
 _	"net/http"
 	"bufio"
 	"io/ioutil"
@@ -31,6 +31,9 @@ type CPU struct {
 	Steal uint64
 	Guest uint64
 	GuestNice uint64
+	LoadOne float64
+	LoadFive float64
+	LoadFiveTeen float64
 }
 func check(e error) {
 	if e != nil {
@@ -75,17 +78,6 @@ func toInt(raw string) int {
 	check(err)
 	return res
 }
-/*
-func PrintMemory(w http.ResponseWriter, r *http.Request) {
-	dat := GetMemory()
-	fmt.Fprintf(w, "Total: %d\n", dat.MemTotal)
-	fmt.Fprintf(w, "Used: %d\n",
-		dat.MemTotal - dat.MemFree - dat.Buffers - dat.Cached)
-	fmt.Fprintf(w, "Available: %d\n", dat.MemAvailable)
-	fmt.Fprintf(w, "Buff/Cache: %d/%d\n", dat.Buffers,dat.Cached)
-}
-*/
-
 
 func GetCpuStats() (CPU, error) {
 	dat, err := ioutil.ReadFile("/proc/stat")
@@ -133,3 +125,43 @@ func PrintCpu() (cpuUsage float64) {
 
 	return cpuUsage
 }
+
+func GetLoadAverage() (float64, float64, float64, error) {
+	file, err := os.Open("/proc/loadavg")
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	if scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 3 {
+			return 0, 0, 0, fmt.Errorf("invalid format")
+		}
+
+		load1, err := parseLoad(fields[0])
+		if err != nil {
+			return 0, 0, 0, err
+		}
+
+		load5, err := parseLoad(fields[1])
+		if err != nil {
+			return 0, 0, 0, err
+		}
+
+		load15, err := parseLoad(fields[2])
+		if err != nil {
+			return 0, 0, 0, err
+		}
+
+		return load1, load5, load15, nil
+	}
+
+	return 0, 0, 0, fmt.Errorf("failed")
+}
+
+func parseLoad(loadStr string) (float64, error) {
+	return strconv.ParseFloat(loadStr, 64)
+}
+

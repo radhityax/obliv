@@ -1,4 +1,4 @@
-module obliv
+module delphinium
 
 go 1.24.4
 

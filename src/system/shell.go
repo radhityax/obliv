@@ -10,7 +10,7 @@ import (
 func Shell() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Printf("obliv> ")
+		fmt.Printf("delphinium> ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
 			continue

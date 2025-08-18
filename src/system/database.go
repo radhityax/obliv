@@ -16,7 +16,7 @@ type Account struct {
 
 func CreateFile() error {
 	os.Mkdir("./data", os.ModeDir)
-	filename := "./data/obliv.db"
+	filename := "./data/delphinium.db"
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		file, err := os.Create(filename)
 		if err != nil {
@@ -28,7 +28,7 @@ func CreateFile() error {
 }
 
 func ConnectDatabase() *sql.DB {
-	db, err := sql.Open("sqlite3", "./data/obliv.db")
+	db, err := sql.Open("sqlite3", "./data/delphinium.db")
 	if err != nil {
 		fmt.Printf("error while connecting database\n")
 	}
